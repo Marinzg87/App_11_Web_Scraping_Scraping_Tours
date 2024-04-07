@@ -3,6 +3,7 @@ import selectorlib
 import smtplib
 import ssl
 import os
+import time
 
 URL = "http://programmer100.pythonanywhere.com/tours/"
 PASSWORD = os.getenv("GMAIL_WEBCAM_MESSAGE")
@@ -46,11 +47,13 @@ def read(extracted_local):
 
 
 if __name__ == "__main__":
-    scraped = scrape(URL)
-    extracted = extract(scraped)
-    print(extracted)
-    content = read(extracted)
-    if extracted != "No upcoming tours":
-        if extracted not in content:
-            store(extracted)
-            send_email(message="Hey, new event was found!")
+    while True:
+        scraped = scrape(URL)
+        extracted = extract(scraped)
+        print(extracted)
+        content = read(extracted)
+        if extracted != "No upcoming tours":
+            if extracted not in content:
+                store(extracted)
+                send_email(message="Hey, new event was found!")
+        time.sleep(2)
