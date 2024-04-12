@@ -4,11 +4,14 @@ import smtplib
 import ssl
 import os
 import time
+import sqlite3
 
 URL = "http://programmer100.pythonanywhere.com/tours/"
 PASSWORD = os.getenv("GMAIL_WEBCAM_MESSAGE")
 SENDER = os.getenv("GMAIL_EMAIL_ADDRESS")
 RECEIVER = os.getenv("GMAIL_EMAIL_ADDRESS")
+
+connection = sqlite3.connect("data.db")
 
 
 def scrape(url):
@@ -37,13 +40,22 @@ def send_email(message):
 
 
 def store(extracted_local):
-    with open("data.txt", "a") as file:
-        file.write(extracted_local + "\n")
+    row_local = extracted_local.split(",")
+    row_local = [item.strip() for item in row_local]
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO events VALUES(?,?,?)", row_local)
+    connection.commit()
 
 
 def read(extracted_local):
-    with open("data.txt", "r") as file:
-        return file.read()
+    row_local = extracted_local.split(",")
+    row_local = [item.strip() for item in row_local]
+    band, city, date = row_local
+    cursor = connection.cursor()
+    cursor.execute("SELECT band, date FROM events WHERE band=? AND city=? "
+                   "AND date=?", (band, city, date))
+    rows = cursor.fetchall()
+    return rows
 
 
 if __name__ == "__main__":
@@ -51,9 +63,10 @@ if __name__ == "__main__":
         scraped = scrape(URL)
         extracted = extract(scraped)
         print(extracted)
-        content = read(extracted)
+
         if extracted != "No upcoming tours":
-            if extracted not in content:
+            row = read(extracted)
+            if not row:
                 store(extracted)
                 send_email(message="Hey, new event was found!")
         time.sleep(2)
